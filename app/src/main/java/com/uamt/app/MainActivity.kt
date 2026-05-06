@@ -3,13 +3,20 @@ package com.uamt.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -19,10 +26,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     UamtApp()
                 }
             }
@@ -34,18 +38,16 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun UamtApp() {
     var currentScreen by remember { mutableStateOf("menu") }
-    var logs by remember { mutableStateOf(listOf("Welcome to UAMT UI v1.3.1")) }
-    val coroutineScope = rememberCoroutineScope()
+    var logs by remember { mutableStateOf(listOf(">>> UAMT UI v1.3.1 Loaded")) }
+    val scope = rememberCoroutineScope()
 
-    fun log(msg: String) {
-        logs = logs + msg
-    }
+    fun log(msg: String) { logs = logs + msg }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ultimate Android Modding Toolkit") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            CenterAlignedTopAppBar(
+                title = { Text("UAMT", fontFamily = FontFamily.Monospace) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF121212))
             )
         }
     ) { padding ->
@@ -53,108 +55,123 @@ fun UamtApp() {
             
             Box(modifier = Modifier.weight(1f)) {
                 when (currentScreen) {
-                    "menu" -> {
-                        Column {
-                            Button(onClick = { currentScreen = "inject_frida" }, modifier = Modifier.fillMaxWidth().padding(bottom=8.dp)) { Text("Inject Frida Gadget") }
-                            Button(onClick = { currentScreen = "inject_custom" }, modifier = Modifier.fillMaxWidth().padding(bottom=8.dp)) { Text("Inject Custom Library") }
-                            Button(onClick = { currentScreen = "connect" }, modifier = Modifier.fillMaxWidth().padding(bottom=8.dp)) { Text("Connect to Gadget") }
-                            Button(onClick = { currentScreen = "download" }, modifier = Modifier.fillMaxWidth().padding(bottom=8.dp)) { Text("Download Frida Gadget") }
-                            Button(onClick = { currentScreen = "install" }, modifier = Modifier.fillMaxWidth().padding(bottom=8.dp)) { Text("Install and Update Tools") }
-                        }
-                    }
-                    "inject_frida" -> {
-                        Column {
-                            Text("Frida Injection", style = MaterialTheme.typography.titleLarge)
-                            var apkPath by remember { mutableStateOf("/sdcard/target.apk") }
-                            OutlinedTextField(value = apkPath, onValueChange = { apkPath = it }, label = { Text("Target APK Path") }, modifier = Modifier.fillMaxWidth())
-                            
-                            Button(onClick = {
-                                log("Starting Frida Injection for $apkPath...")
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        UamtEngine.injectFrida(apkPath) { log(it) }
-                                    }
-                                }
-                            }, modifier = Modifier.padding(top=8.dp)) { Text("Start Injection") }
-                            Button(onClick = { currentScreen = "menu" }, modifier = Modifier.padding(top=8.dp)) { Text("Back") }
-                        }
-                    }
-                    "inject_custom" -> {
-                        Column {
-                            Text("Custom Library Injection", style = MaterialTheme.typography.titleLarge)
-                            var apkPath by remember { mutableStateOf("/sdcard/target.apk") }
-                            var soPath by remember { mutableStateOf("/sdcard/mylib.so") }
-                            OutlinedTextField(value = apkPath, onValueChange = { apkPath = it }, label = { Text("Target APK Path") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = soPath, onValueChange = { soPath = it }, label = { Text("Custom .so Path") }, modifier = Modifier.fillMaxWidth())
-                            
-                            Button(onClick = {
-                                log("Starting Custom Injection...")
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        UamtEngine.injectCustom(apkPath, soPath) { log(it) }
-                                    }
-                                }
-                            }, modifier = Modifier.padding(top=8.dp)) { Text("Start Injection") }
-                            Button(onClick = { currentScreen = "menu" }, modifier = Modifier.padding(top=8.dp)) { Text("Back") }
-                        }
-                    }
-                    "connect" -> {
-                        Column {
-                            Text("Connect to Gadget", style = MaterialTheme.typography.titleLarge)
-                            var ip by remember { mutableStateOf("127.0.0.1") }
-                            var port by remember { mutableStateOf("27042") }
-                            OutlinedTextField(value = ip, onValueChange = { ip = it }, label = { Text("IP Address") }, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = port, onValueChange = { port = it }, label = { Text("Port") }, modifier = Modifier.fillMaxWidth())
-                            
-                            Button(onClick = {
-                                log("Connecting to $ip:$port...")
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        UamtEngine.runCommand(listOf("frida", "-H", "$ip:$port", "gadget")) { log(it) }
-                                    }
-                                }
-                            }, modifier = Modifier.padding(top=8.dp)) { Text("Connect") }
-                            Button(onClick = { currentScreen = "menu" }, modifier = Modifier.padding(top=8.dp)) { Text("Back") }
-                        }
-                    }
-                    "download" -> {
-                        Column {
-                            Text("Download Frida Gadget", style = MaterialTheme.typography.titleLarge)
-                            Button(onClick = {
-                                log("Downloading Frida Gadget...")
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        UamtEngine.downloadFrida { log(it) }
-                                    }
-                                }
-                            }, modifier = Modifier.padding(top=8.dp)) { Text("Download") }
-                            Button(onClick = { currentScreen = "menu" }, modifier = Modifier.padding(top=8.dp)) { Text("Back") }
-                        }
-                    }
-                    "install" -> {
-                        Column {
-                            Text("Install Dependencies", style = MaterialTheme.typography.titleLarge)
-                            Button(onClick = {
-                                log("Installing dependencies via pkg...")
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        UamtEngine.installDependencies { log(it) }
-                                    }
-                                }
-                            }, modifier = Modifier.padding(top=8.dp)) { Text("Install") }
-                            Button(onClick = { currentScreen = "menu" }, modifier = Modifier.padding(top=8.dp)) { Text("Back") }
-                        }
-                    }
+                    "menu" -> MenuScreen { currentScreen = it }
+                    "inject_frida" -> FridaScreen(scope, ::log) { currentScreen = "menu" }
+                    "inject_custom" -> CustomLibScreen(scope, ::log) { currentScreen = "menu" }
+                    "connect" -> ConnectScreen(scope, ::log) { currentScreen = "menu" }
+                    "tools" -> ToolsScreen(scope, ::log) { currentScreen = "menu" }
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            Text("Console Log:", style = MaterialTheme.typography.labelMedium)
-            LazyColumn(modifier = Modifier.weight(0.5f).fillMaxWidth()) {
-                items(logs) { logMsg ->
-                    Text(logMsg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Console Output Area
+            Surface(
+                modifier = Modifier.weight(0.4f).fillMaxWidth(),
+                color = Color.Black,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                LazyColumn(modifier = Modifier.padding(8.dp), reverseLayout = true) {
+                    items(logs.reversed()) { msg ->
+                        Text(msg, color = Color.Green, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MenuScreen(onNavigate: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        MenuButton("INJECT FRIDA GADGET", "inject_frida") { onNavigate(it) }
+        MenuButton("INJECT CUSTOM LIB", "inject_custom") { onNavigate(it) }
+        MenuButton("CONNECT TO GADGET", "connect") { onNavigate(it) }
+        MenuButton("INSTALL / UPDATE TOOLS", "tools") { onNavigate(it) }
+    }
+}
+
+@Composable
+fun MenuButton(label: String, route: String, onClick: (String) -> Unit) {
+    Button(
+        onClick = { onClick(route) },
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+    ) {
+        Text(label, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+    }
+}
+
+@Composable
+fun FridaScreen(scope: kotlinx.coroutines.CoroutineScope, log: (String) -> Unit, onBack: () -> Unit) {
+    var apkPath by remember { mutableStateOf("/sdcard/game.apk") }
+    var strategy by remember { mutableStateOf("Auto") }
+    var selectedArchs by remember { mutableStateOf(setOf("arm64-v8a", "armeabi-v7a")) }
+
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        Text("Frida Injection Settings", style = MaterialTheme.typography.titleMedium)
+        OutlinedTextField(value = apkPath, onValueChange = { apkPath = it }, label = { Text("APK Path") }, modifier = Modifier.fillMaxWidth())
+        
+        Text("Target Architectures:", modifier = Modifier.padding(top=8.dp))
+        Row {
+            listOf("arm64-v8a", "armeabi-v7a").forEach { arch ->
+                FilterChip(
+                    selected = selectedArchs.contains(arch),
+                    onClick = { if(selectedArchs.contains(arch)) selectedArchs -= arch else selectedArchs += arch },
+                    label = { Text(arch) },
+                    modifier = Modifier.padding(end=4.dp)
+                )
+            }
+        }
+
+        Button(onClick = {
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    UamtEngine.injectFrida(apkPath, selectedArchs.toList(), strategy, null, log)
+                }
+            }
+        }, modifier = Modifier.fillMaxWidth().padding(top=16.dp)) { Text("START INJECTION") }
+        
+        TextButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("CANCEL") }
+    }
+}
+
+@Composable
+fun CustomLibScreen(scope: kotlinx.coroutines.CoroutineScope, log: (String) -> Unit, onBack: () -> Unit) {
+    var apkPath by remember { mutableStateOf("/sdcard/base.apk") }
+    var soPath by remember { mutableStateOf("/sdcard/libhook.so") }
+    Column {
+        OutlinedTextField(value = apkPath, onValueChange = { apkPath = it }, label = { Text("Target APK") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = soPath, onValueChange = { soPath = it }, label = { Text("Library .so") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            scope.launch { withContext(Dispatchers.IO) { UamtEngine.runCommand(listOf("echo", "Injecting $soPath into $apkPath"), log) } }
+        }, modifier = Modifier.fillMaxWidth().padding(top=16.dp)) { Text("INJECT") }
+        TextButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("BACK") }
+    }
+}
+
+@Composable
+fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope, log: (String) -> Unit, onBack: () -> Unit) {
+    var host by remember { mutableStateOf("127.0.0.1:27042") }
+    Column {
+        OutlinedTextField(value = host, onValueChange = { host = it }, label = { Text("Frida Host") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            scope.launch { withContext(Dispatchers.IO) { UamtEngine.runCommand(listOf("frida", "-H", host, "gadget"), log) } }
+        }, modifier = Modifier.fillMaxWidth().padding(top=16.dp)) { Text("CONNECT") }
+        TextButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("BACK") }
+    }
+}
+
+@Composable
+fun ToolsScreen(scope: kotlinx.coroutines.CoroutineScope, log: (String) -> Unit, onBack: () -> Unit) {
+    Column {
+        Text("System Tools Manager", style = MaterialTheme.typography.titleMedium)
+        Button(onClick = {
+            scope.launch { withContext(Dispatchers.IO) { UamtEngine.installDependencies(log) } }
+        }, modifier = Modifier.fillMaxWidth().padding(top=16.dp)) { Text("INSTALL / UPDATE ALL") }
+        Button(onClick = {
+            scope.launch { withContext(Dispatchers.IO) { UamtEngine.downloadFrida(log) } }
+        }, modifier = Modifier.fillMaxWidth().padding(top=8.dp)) { Text("DOWNLOAD FRIDA GADGET") }
+        TextButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("BACK") }
     }
 }
